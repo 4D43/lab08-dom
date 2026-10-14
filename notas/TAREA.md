@@ -6,7 +6,7 @@ Registro de notas de estudiantes con promedio. Es un componente que me resulta �
 
 Código: carpeta tarea/ (index.html y app.js).
 
-Página publicada: https://github.com/4D43/lab08-dom.git/tarea/
+Página publicada: https://github.com/4D43/lab08-dom/tree/main/tarea
 
 ## Version 1: solo DOM
 
