@@ -1,6 +1,52 @@
-// Versión 2: DOM + eventos (submit, click, input), datos en arreglos simples
-const nombres = [];
-const notas = [];
+class Estudiante {
+  constructor(nombre, nota) {
+    this.id = ++Estudiante.contador;
+    this.nombre = nombre;
+    this.nota = nota;
+  }
+  aprobado() {
+    return this.nota >= 11;
+  }
+  estado() {
+    return this.aprobado() ? "Aprobado" : "Desaprobado";
+  }
+}
+Estudiante.contador = 0;
+
+class RegistroNotas {
+  constructor() {
+    this.estudiantes = [];
+  }
+  agregar(nombre, nota) {
+    const estudiante = new Estudiante(nombre, nota);
+    this.estudiantes.push(estudiante);
+    return estudiante;
+  }
+  eliminar(id) {
+    this.estudiantes = this.estudiantes.filter((e) => e.id !== id);
+  }
+  buscar(texto) {
+    const t = texto.trim().toLowerCase();
+    return this.estudiantes.filter((e) => e.nombre.toLowerCase().includes(t));
+  }
+  promedio() {
+    if (this.estudiantes.length === 0) return 0;
+    const suma = this.estudiantes.reduce((acc, e) => acc + e.nota, 0);
+    return suma / this.estudiantes.length;
+  }
+}
+
+function validar(nombre, notaTexto) {
+  if (nombre.trim().length < 2)
+    return "El nombre debe tener al menos 2 caracteres.";
+  if (notaTexto.trim() === "") return "Ingresa una nota.";
+  const nota = Number(notaTexto);
+  if (Number.isNaN(nota) || nota < 0 || nota > 20)
+    return "La nota debe ser un número entre 0 y 20.";
+  return "";
+}
+
+const registro = new RegistroNotas();
 
 const form = document.getElementById("formulario");
 const inputNombre = document.getElementById("nombre");
@@ -15,47 +61,49 @@ function mostrarMensaje(texto, tipo) {
   mensaje.className = tipo;
 }
 
-function validar(nombre, notaTexto) {
-  if (nombre.trim().length < 2)
-    return "El nombre debe tener al menos 2 caracteres.";
-  if (notaTexto.trim() === "") return "Ingresa una nota.";
-  const nota = Number(notaTexto);
-  if (Number.isNaN(nota) || nota < 0 || nota > 20)
-    return "La nota debe ser un número entre 0 y 20.";
-  return "";
-}
-
 function dibujar() {
   lista.replaceChildren();
-  const texto = buscador.value.trim().toLowerCase();
-  for (let i = 0; i < nombres.length; i++) {
-    if (!nombres[i].toLowerCase().includes(texto)) continue;
+  const visibles = registro.buscar(buscador.value);
+
+  visibles.forEach((e) => {
     const li = document.createElement("li");
+    li.className = e.aprobado() ? "aprobado" : "desaprobado";
+
     const span = document.createElement("span");
-    span.textContent = nombres[i] + ": " + notas[i];
+    span.textContent = `${e.nombre}: ${e.nota} (${e.estado()})`;
+
     const btn = document.createElement("button");
     btn.textContent = "Borrar";
     btn.className = "borrar";
-    btn.dataset.indice = i;
+    btn.dataset.id = e.id;
+
     li.append(span, btn);
     lista.appendChild(li);
+  });
+
+  if (visibles.length === 0) {
+    const vacio = document.createElement("li");
+    vacio.className = "vacio";
+    vacio.textContent =
+      registro.estudiantes.length === 0
+        ? "Agrega la primera nota con el formulario."
+        : "Ningún estudiante coincide con la búsqueda.";
+    lista.appendChild(vacio);
   }
-  const suma = notas.reduce((a, b) => a + b, 0);
-  promedio.textContent = notas.length
-    ? "Promedio general: " + (suma / notas.length).toFixed(2)
+
+  promedio.textContent = registro.estudiantes.length
+    ? `Promedio general: ${registro.promedio().toFixed(2)}`
     : "Aún no hay notas registradas.";
 }
 
 form.addEventListener("submit", (ev) => {
-  // evento 1: submit
   ev.preventDefault();
   const error = validar(inputNombre.value, inputNota.value);
   if (error) {
     mostrarMensaje(error, "error");
     return;
   }
-  nombres.push(inputNombre.value.trim());
-  notas.push(Number(inputNota.value));
+  registro.agregar(inputNombre.value.trim(), Number(inputNota.value));
   form.reset();
   inputNombre.focus();
   mostrarMensaje("Nota agregada.", "ok");
@@ -63,16 +111,13 @@ form.addEventListener("submit", (ev) => {
 });
 
 lista.addEventListener("click", (ev) => {
-  // evento 2: click
   const btn = ev.target.closest("button.borrar");
   if (!btn) return;
-  const i = Number(btn.dataset.indice);
-  nombres.splice(i, 1);
-  notas.splice(i, 1);
+  registro.eliminar(Number(btn.dataset.id));
   mostrarMensaje("Estudiante eliminado.", "ok");
   dibujar();
 });
 
-buscador.addEventListener("input", dibujar); // evento 3: input
+buscador.addEventListener("input", dibujar);
 
 dibujar();
